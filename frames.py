@@ -6,6 +6,11 @@ import cv2
 import io
 import os
 from copy import copy
+from common_header import *
+
+
+QUALITY = 90
+
 
 winlist = []
 
@@ -38,12 +43,8 @@ def get_frame(window):
     # screen = 'vlc media player'
     try:
         frame = ImageGrab.grab(bbox=win32gui.GetWindowRect(window))
-        FRAMESAVE = "client/frame.jpg"
-        frame.save("client/frame_not_optimized.jpg")
-        frame.save(FRAMESAVE, optimize = True, quality = 60)
-        # print(f"Frame not optimised: {os.stat('client/frame.jpg').st_size}")
-        # print(f"Frame not optimised: {os.stat('client/frame_not_optimized.jpg').st_size}")
-        with open(FRAMESAVE, "rb") as f:
+        frame.save(CLIENT_FRAMESAVE, optimize = True, quality = QUALITY)
+        with open(CLIENT_FRAMESAVE, "rb") as f:
             frame = f.read()
         return frame
         # # print("loop took {} seconds".format(time.time() - last_time))

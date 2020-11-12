@@ -6,20 +6,21 @@ import cv2
 import win32gui
 import os
 import io
+import sys
+import keyboard as kb
 from time import sleep
 from common_header import *
 from PIL import ImageGrab, Image
 
 SERVER = "192.168.192.44"
 ADDR = (SERVER, PORT)
-
+SENDING = True
 SCREEN_NAME = "vlc media player"
 
 
 
 
 def send_frame(image):
-
     # frame = {
     #     'pixels': image.tobytes(),
     #     'size': image.size,
@@ -31,9 +32,8 @@ def send_frame(image):
     # img_byte_arr = io.BytesIO()
     # frame.save(img_byte_arr, 'png')
     # frame_send = img_byte_arr.getvalue()
-    
     to_send = bytes(f"{len(image):<{HEADER}}", FORMAT) + bytes(FRAME_MSG, FORMAT) + image
-    client.send(to_send)
+    if SENDING: client.send(to_send)
 
 def send_frame_size(frame):
     fsize = pickle.dumps(frame.size)
@@ -44,6 +44,22 @@ def send_dc():
     msg = bytes(f"{len(DISCONNECT_MESSAGE):<{HEADER}}", FORMAT) + bytes(TEXT_MSG, FORMAT) + bytes(DISCONNECT_MESSAGE, FORMAT)
     client.send(msg)
     client.close()
+
+def startup():
+    print("[STATING WORK] Press esc to close connection.")
+    kb.add_hotkey('esc', finish_work)
+
+def cleanup():
+    os.remove(CLIENT_FRAMESAVE)
+
+def finish_work():
+    global SENDING
+    SENDING = False
+    send_dc()
+    cleanup()
+    sys.exit("[CLIENT DISCONNECTING] Client finished working.")
+
+
 
 
 def send_img():
@@ -66,18 +82,19 @@ def send_img():
     # img = Image("img/sao.png")
     # img.show()
 
-
 def sending_procedure(window_name):
 
     window = frames.prepare_for_frames(window_name)
     if window is None:
         print(f"[ERROR] Client couldn't send a valide frame")
         return
-    for _ in range(100000):
+    while SENDING:
+        #Consider creating object for it
+        frames.QUALITY = 90
         frame = frames.get_frame(window)
         send_frame(frame)
         # send_frame_size(frame)
-        sleep(0.033)
+        sleep(0.033/2)
         # cv2.imshow('client',cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         # if cv2.waitKey(25) & 0xFF == ord('q'):
         #     # send_dc()
@@ -87,6 +104,9 @@ def sending_procedure(window_name):
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect(ADDR)
+print("[CONNECTION ESTABLISHED]")
 
+
+startup()
 sending_procedure(SCREEN_NAME)
-send_dc()
+cleanup()
